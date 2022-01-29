@@ -86,7 +86,7 @@ def main():
     for line in all_tokens:
         for token in line:
             token_list.append(token)
-    print(len(token))
+    print(len(token_list))
 
     # building the vocabulary for both text and the labels
     # vocab_text = torchtext.vocab.build_vocab_from_iterator(
