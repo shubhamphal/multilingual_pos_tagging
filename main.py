@@ -80,7 +80,8 @@ def main():
 
 
     all_tokens = [line for line, label in train_data]
-    print(train_data)
+    print(all_tokens)
+    
 
     print(len(train_data))
 
