@@ -78,155 +78,155 @@ def main():
         split=('train', 'valid', 'test'),
     )
 
+    
 
-    all_tokens = [line for line, label in train_data]
+    #code to count the number of tokens in each language
+    # all_tokens = [line for line, label in train_data]
+    # token_list = []
+    # for line in all_tokens:
+    #     for token in line:
+    #         token_list.append(token)
+    # print(len(token_list))
 
-    token_list = []
+    #building the vocabulary for both text and the labels
+    vocab_text = torchtext.vocab.build_vocab_from_iterator(
+        (line for line, label in train_data), min_freq=params['min_freq'],
+        specials=['<unk>', '<PAD>']
+    )
+    vocab_text.set_default_index(vocab_text['<unk>'])
+    vocab_tag = torchtext.vocab.build_vocab_from_iterator(
+        (label for line, label in train_data),
+        specials=['<unk>', '<PAD>']
+    )
+    vocab_tag.set_default_index(vocab_tag['<unk>'])
 
-    for line in all_tokens:
-        for token in line:
-            token_list.append(token)
-    print(len(token_list))
+    # print the statistics of the data
+    if args.mode == "train":
+        print(f"Unique tokens in TEXT vocabulary: {len(vocab_text)}")
+        print(f"Unique tokens in UD_TAG vocabulary: {len(vocab_tag)}")
+        print()
+        print(f"Number of training examples: {len(train_data)}")
+        print(f"Number of validation examples: {len(valid_data)}")
+    print(f"Number of testing examples: {len(test_data)}")
 
-    # building the vocabulary for both text and the labels
-    # vocab_text = torchtext.vocab.build_vocab_from_iterator(
-    #     (line for line, label in train_data), min_freq=params['min_freq'],
-    #     specials=['<unk>', '<PAD>']
-    # )
-    # vocab_text.set_default_index(vocab_text['<unk>'])
-    # vocab_tag = torchtext.vocab.build_vocab_from_iterator(
-    #     (label for line, label in train_data),
-    #     specials=['<unk>', '<PAD>']
-    # )
-    # vocab_tag.set_default_index(vocab_tag['<unk>'])
+    # functions that convert words/tags to indices
+    def transform_text(x):
+        return [vocab_text[token] for token in x]
 
-    # # print the statistics of the data
-    # if args.mode == "train":
-    #     print(f"Unique tokens in TEXT vocabulary: {len(vocab_text)}")
-    #     print(f"Unique tokens in UD_TAG vocabulary: {len(vocab_tag)}")
-    #     print()
-    #     print(f"Number of training examples: {len(train_data)}")
-    #     print(f"Number of validation examples: {len(valid_data)}")
-    # print(f"Number of testing examples: {len(test_data)}")
+    def transform_tag(x):
+        return [vocab_tag[tag] for tag in x]
 
-    # # functions that convert words/tags to indices
-    # def transform_text(x):
-    #     return [vocab_text[token] for token in x]
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # def transform_tag(x):
-    #     return [vocab_tag[tag] for tag in x]
+    # function that pack (text, label) pairs into a batch
+    def collate_batch(batch):
+        tag_list, text_list = [], []
+        for (line, label) in batch:
+            text_list.append(torch.tensor(transform_text(line), device=device))
+            tag_list.append(torch.tensor(transform_tag(label), device=device))
+        return (
+            pad_sequence(text_list, padding_value=vocab_text['<PAD>']),
+            pad_sequence(tag_list, padding_value=vocab_tag['<PAD>'])
+        )
 
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # iterators that generate batch with `collate_batch`
+    train_dataloader = DataLoader(
+        train_data, batch_size=params['batch_size'],
+        shuffle=True, collate_fn=collate_batch
+    )
+    valid_dataloader = DataLoader(
+        valid_data, batch_size=params['batch_size'],
+        shuffle=False, collate_fn=collate_batch
+    )
+    test_dataloader = DataLoader(
+        test_data, batch_size=params['batch_size'],
+        shuffle=False, collate_fn=collate_batch
+    )
 
-    # # function that pack (text, label) pairs into a batch
-    # def collate_batch(batch):
-    #     tag_list, text_list = [], []
-    #     for (line, label) in batch:
-    #         text_list.append(torch.tensor(transform_text(line), device=device))
-    #         tag_list.append(torch.tensor(transform_tag(label), device=device))
-    #     return (
-    #         pad_sequence(text_list, padding_value=vocab_text['<PAD>']),
-    #         pad_sequence(tag_list, padding_value=vocab_tag['<PAD>'])
-    #     )
+    # initialize the model
+    model = BiLSTMPOSTagger(
+        input_dim=len(vocab_text),
+        embedding_dim=params["embedding_dim"],
+        hidden_dim=params["hidden_dim"],
+        output_dim=len(vocab_tag),
+        n_layers=params["n_layers"],
+        bidirectional=params["bidirectional"],
+        dropout=params["dropout"],
+        pad_idx=vocab_text['<PAD>'],
+    ).to(device)
 
-    # # iterators that generate batch with `collate_batch`
-    # train_dataloader = DataLoader(
-    #     train_data, batch_size=params['batch_size'],
-    #     shuffle=True, collate_fn=collate_batch
-    # )
-    # valid_dataloader = DataLoader(
-    #     valid_data, batch_size=params['batch_size'],
-    #     shuffle=False, collate_fn=collate_batch
-    # )
-    # test_dataloader = DataLoader(
-    #     test_data, batch_size=params['batch_size'],
-    #     shuffle=False, collate_fn=collate_batch
-    # )
+    # print the number of parameters
+    n_param = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"The model has {n_param} trainable parameters")
 
-    # # initialize the model
-    # model = BiLSTMPOSTagger(
-    #     input_dim=len(vocab_text),
-    #     embedding_dim=params["embedding_dim"],
-    #     hidden_dim=params["hidden_dim"],
-    #     output_dim=len(vocab_tag),
-    #     n_layers=params["n_layers"],
-    #     bidirectional=params["bidirectional"],
-    #     dropout=params["dropout"],
-    #     pad_idx=vocab_text['<PAD>'],
-    # ).to(device)
+    # set up the loss function
+    criterion = nn.CrossEntropyLoss(ignore_index=vocab_tag['<PAD>'])
+    criterion = criterion.to(device)
 
-    # # print the number of parameters
-    # n_param = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    # print(f"The model has {n_param} trainable parameters")
+    if args.mode == "train":
+        # initialize the parameters
+        def init_weights(m):
+            for name, param in m.named_parameters():
+                nn.init.normal_(param.data, mean=0, std=0.1)
+        model.apply(init_weights)
+        # initialize the embedding for <PAD> with zero
+        model.embedding.weight.data[vocab_text['<PAD>']] = \
+            torch.zeros(params["embedding_dim"])
 
-    # # set up the loss function
-    # criterion = nn.CrossEntropyLoss(ignore_index=vocab_tag['<PAD>'])
-    # criterion = criterion.to(device)
+        # set up the optimizer
+        optimizer = optim.Adam(model.parameters())
 
-    # if args.mode == "train":
-    #     # initialize the parameters
-    #     def init_weights(m):
-    #         for name, param in m.named_parameters():
-    #             nn.init.normal_(param.data, mean=0, std=0.1)
-    #     model.apply(init_weights)
-    #     # initialize the embedding for <PAD> with zero
-    #     model.embedding.weight.data[vocab_text['<PAD>']] = \
-    #         torch.zeros(params["embedding_dim"])
+        # training loop
+        best_valid_loss = float("inf")
+        for epoch in range(params['max_epoch']):
+            start_time = time.time()
+            train_loss, train_acc = train(
+                model,
+                train_dataloader,
+                optimizer,
+                criterion,
+                vocab_tag['<PAD>'],
+                vocab_tag['<UNK>'],
+            )
+            valid_loss, valid_acc = evaluate(
+                model, valid_dataloader, criterion,
+                vocab_tag['<PAD>'], vocab_tag['<UNK>']
+            )
+            end_time = time.time()
+            epoch_mins, epoch_secs = epoch_time(start_time, end_time)
 
-    #     # set up the optimizer
-    #     optimizer = optim.Adam(model.parameters())
+            # save the model if valid_loss is better
+            if valid_loss < best_valid_loss:
+                best_valid_loss = valid_loss
+                torch.save(
+                    model.state_dict(), f"saved_models/{args.model_name}.pt"
+                )
 
-    #     # training loop
-    #     best_valid_loss = float("inf")
-    #     for epoch in range(params['max_epoch']):
-    #         start_time = time.time()
-    #         train_loss, train_acc = train(
-    #             model,
-    #             train_dataloader,
-    #             optimizer,
-    #             criterion,
-    #             vocab_tag['<PAD>'],
-    #             vocab_tag['<UNK>'],
-    #         )
-    #         valid_loss, valid_acc = evaluate(
-    #             model, valid_dataloader, criterion,
-    #             vocab_tag['<PAD>'], vocab_tag['<UNK>']
-    #         )
-    #         end_time = time.time()
-    #         epoch_mins, epoch_secs = epoch_time(start_time, end_time)
+            print(f"Epoch: {epoch+1:02} "
+                  f"| Epoch Time: {epoch_mins}m {epoch_secs}s")
+            print(f"\tTrain Loss: {train_loss:.3f} "
+                  f"| Train Acc: {train_acc*100:.2f}%")
+            print(f"\t Val. Loss: {valid_loss:.3f} "
+                  f"|  Val. Acc: {valid_acc*100:.2f}%")
 
-    #         # save the model if valid_loss is better
-    #         if valid_loss < best_valid_loss:
-    #             best_valid_loss = valid_loss
-    #             torch.save(
-    #                 model.state_dict(), f"saved_models/{args.model_name}.pt"
-    #             )
+    # load the trained model
+    try:
+        model.load_state_dict(
+            torch.load(f"saved_models/{args.model_name}.pt",
+                       map_location=device)
+        )
+    except OSError:
+        print(
+            f"Model file `saved_models/{args.model_name}.pt` doesn't exist."
+            "You need to train the model by running this code in train mode."
+            "Run python main.py --help for more instructions"
+        )
+        return
 
-    #         print(f"Epoch: {epoch+1:02} "
-    #               f"| Epoch Time: {epoch_mins}m {epoch_secs}s")
-    #         print(f"\tTrain Loss: {train_loss:.3f} "
-    #               f"| Train Acc: {train_acc*100:.2f}%")
-    #         print(f"\t Val. Loss: {valid_loss:.3f} "
-    #               f"|  Val. Acc: {valid_acc*100:.2f}%")
-
-    # # load the trained model
-    # try:
-    #     model.load_state_dict(
-    #         torch.load(f"saved_models/{args.model_name}.pt",
-    #                    map_location=device)
-    #     )
-    # except OSError:
-    #     print(
-    #         f"Model file `saved_models/{args.model_name}.pt` doesn't exist."
-    #         "You need to train the model by running this code in train mode."
-    #         "Run python main.py --help for more instructions"
-    #     )
-    #     return
-
-    # test_loss, test_acc = evaluate(
-    #     model, test_dataloader, criterion, vocab_tag['<PAD>'], vocab_tag['<UNK>']
-    # )
-    # print(f"Test Loss: {test_loss:.3f} |  Test Acc: {test_acc*100:.2f}%")
+    test_loss, test_acc = evaluate(
+        model, test_dataloader, criterion, vocab_tag['<PAD>'], vocab_tag['<UNK>']
+    )
+    print(f"Test Loss: {test_loss:.3f} |  Test Acc: {test_acc*100:.2f}%")
 
 
 def tag_percentage(tag_counts):
