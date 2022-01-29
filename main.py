@@ -78,6 +78,9 @@ def main():
         split=('train', 'valid', 'test'),
     )
 
+
+    print(train_data)
+
     print(len(train_data))
 
     # building the vocabulary for both text and the labels
