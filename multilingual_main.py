@@ -1,4 +1,5 @@
 from collections import Counter
+from turtle import shape
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -124,8 +125,16 @@ def main():
     def collate_batch(batch):
         tag_list, text_list = [], []
         for (line, label) in batch:
+
+            embedded_line = transform_text(line)
+            print(type(embedded_line))
+            print(embedded_line)
+            print(embedded_line.shape)
             text_list.append(transform_text(line))
             tag_list.append(torch.tensor(transform_tag(label), device=device))
+        
+        
+        
         return (
             pad_sequence(text_list, padding_value=vocab_text['<PAD>']),
             pad_sequence(tag_list, padding_value=vocab_tag['<PAD>'])
