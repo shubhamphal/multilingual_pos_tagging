@@ -41,7 +41,7 @@ class BiLSTMPOSTaggerMultilingual(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, text):
+    def forward(self, embedding_text):
 
         # text = [sent len, batch size]
 
@@ -56,10 +56,7 @@ class BiLSTMPOSTaggerMultilingual(nn.Module):
         # print(output.shape
         
         # print(output[0])
-
-         print(text)
-    
-         embedded = self.dropout(self.bpe_embedding.embed(text))
+         embedded = self.dropout(embedding_text)
          outputs, (hidden, cell) = self.lstm(embedded)
          predictions = self.fc(self.dropout(outputs))
          return predictions

@@ -7,8 +7,8 @@ from torchtext import data
 from torchtext.data.utils import get_tokenizer
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
-
 import torchtext.vocab
+from bpemb import BPEmb
 
 from multilingual_model import BiLSTMPOSTaggerMultilingual
 
@@ -78,6 +78,8 @@ def main():
         split=('train', 'valid', 'test'),
     )
 
+    bpe_embedding = BPEmb(lang=args.lang,dim=params["embedding_dim"])
+
     
 
     #code to count the number of tokens in each language
@@ -111,7 +113,7 @@ def main():
 
     # functions that convert words/tags to indices
     def transform_text(x):
-        return x
+        return bpe_embedding.embed(x)
 
     def transform_tag(x):
         return [vocab_tag[tag] for tag in x]
@@ -125,6 +127,7 @@ def main():
             text_list.append(transform_text(line))
             tag_list.append(torch.tensor(transform_tag(label), device=device))
         return (
+            pad_sequence(text_list, padding_value=vocab_text['<PAD>']),
             pad_sequence(tag_list, padding_value=vocab_tag['<PAD>'])
         )
 
