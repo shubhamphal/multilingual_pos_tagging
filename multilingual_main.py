@@ -10,7 +10,7 @@ from torch.nn.utils.rnn import pad_sequence
 
 import torchtext.vocab
 
-from model import BiLSTMPOSTaggerMultilingual
+from multilingual_model import BiLSTMPOSTaggerMultilingual
 
 import numpy as np
 
