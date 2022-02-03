@@ -111,7 +111,7 @@ def main():
 
     # functions that convert words/tags to indices
     def transform_text(x):
-        return [vocab_text[token] for token in x]
+        return x
 
     def transform_tag(x):
         return [vocab_tag[tag] for tag in x]
