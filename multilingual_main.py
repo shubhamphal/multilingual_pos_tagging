@@ -125,11 +125,15 @@ def main():
     def collate_batch(batch):
         tag_list, text_list = [], []
         for (line, label) in batch:
+            print(line)
             embedded_line = transform_text(" ".join(line))
             print(type(embedded_line))
             print(embedded_line)
             print(embedded_line.shape)
-            text_list.append(transform_text(line))
+            #text_list.append(transform_text(line))
+                
+            print(torch.tensor(transform_tag(label), device=device).shape)
+            
             tag_list.append(torch.tensor(transform_tag(label), device=device))
         
         
