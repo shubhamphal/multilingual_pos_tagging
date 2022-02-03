@@ -125,8 +125,7 @@ def main():
     def collate_batch(batch):
         tag_list, text_list = [], []
         for (line, label) in batch:
-            print(line)
-            embedded_line = transform_text(line)
+            embedded_line = transform_text(" ".join(line))
             print(type(embedded_line))
             print(embedded_line)
             print(embedded_line.shape)
