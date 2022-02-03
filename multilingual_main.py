@@ -171,8 +171,8 @@ def main():
                 nn.init.normal_(param.data, mean=0, std=0.1)
         model.apply(init_weights)
         # initialize the embedding for <PAD> with zero
-        model.embedding.weight.data[vocab_text['<PAD>']] = \
-            torch.zeros(params["embedding_dim"])
+        # model.embedding.weight.data[vocab_text['<PAD>']] = \
+        #     torch.zeros(params["embedding_dim"])
 
         # set up the optimizer
         optimizer = optim.Adam(model.parameters())
