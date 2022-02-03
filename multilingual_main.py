@@ -130,6 +130,7 @@ def main():
             print(type(embedded_line))
             print(embedded_line)
             print(embedded_line.shape)
+            print(line)
             text_list.append(transform_text(line))
             tag_list.append(torch.tensor(transform_tag(label), device=device))
         
