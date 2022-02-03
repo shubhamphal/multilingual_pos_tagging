@@ -122,7 +122,7 @@ def main():
     def collate_batch(batch):
         tag_list, text_list = [], []
         for (line, label) in batch:
-            text_list.append(torch.tensor(transform_text(line), device=device))
+            text_list.append(transform_text(line))
             tag_list.append(torch.tensor(transform_tag(label), device=device))
         return (
             pad_sequence(text_list, padding_value=vocab_text['<PAD>']),
