@@ -57,6 +57,7 @@ class BiLSTMPOSTaggerMultilingual(nn.Module):
         
         # print(output[0])
 
+         print(text)
     
          embedded = self.dropout(self.bpe_embedding.embed(text))
          outputs, (hidden, cell) = self.lstm(embedded)
