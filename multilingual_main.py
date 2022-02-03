@@ -125,7 +125,6 @@ def main():
             text_list.append(transform_text(line))
             tag_list.append(torch.tensor(transform_tag(label), device=device))
         return (
-            pad_sequence(text_list, padding_value=vocab_text['<PAD>']),
             pad_sequence(tag_list, padding_value=vocab_tag['<PAD>'])
         )
 
