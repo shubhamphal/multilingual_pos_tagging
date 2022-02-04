@@ -126,7 +126,7 @@ train_data, valid_data, test_data = UDPOS(
 
 
 
-print(vars(train_data[0]))
+print(train_data[0])
 
 
 UD_TAGS.build_vocab(train_data)
