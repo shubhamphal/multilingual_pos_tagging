@@ -147,9 +147,6 @@ def main():
 
     LEARNING_RATE = 5e-5
     optimizer = optim.Adam(model.parameters(), lr = LEARNING_RATE)
-    
-    
-    
     criterion = nn.CrossEntropyLoss(ignore_index = TAG_PAD_IDX)
 
     model = model.to(device)
@@ -158,7 +155,7 @@ def main():
     n_param = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"The model has {n_param} trainable parameters")
 
-    N_EPOCHS = 10
+    N_EPOCHS = 1
     best_valid_loss = float('inf')
 
     for epoch in range(N_EPOCHS):
@@ -198,31 +195,22 @@ def preprocess_tag(tokens, max_input_length):
     return tokens
 
 def train(model, iterator, optimizer, criterion, tag_pad_idx):
-    
     epoch_loss = 0
     epoch_acc = 0
-    
     model.train()
-    
     for batch in iterator:
-        
         text = batch[0]
         tags = batch[1]
-
         print(text)
         print(tags)
-
         print(text.shape)
         print(tags.shape)
-
         optimizer.zero_grad()
         
         #text = [sent len, batch size]
         
         predictions = model(text)
-        
-
-
+    
         #predictions = [sent len, batch size, output dim]
         #tags = [sent len, batch size]
         
@@ -233,7 +221,6 @@ def train(model, iterator, optimizer, criterion, tag_pad_idx):
         #tags = [sent len * batch size]
         
         loss = criterion(predictions, tags)
-                
         acc = categorical_accuracy(predictions, tags, tag_pad_idx)
         
         loss.backward()
