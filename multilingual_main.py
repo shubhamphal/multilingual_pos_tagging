@@ -127,9 +127,9 @@ def main():
 
 
 
-    train_dataloader = DataLoader(train_data, batch_size=params['batch_size'], shuffle=True)
-    valid_dataloader = DataLoader(valid_data, batch_size=params['batch_size'],shuffle=False)
-    test_dataloader = DataLoader(test_data, batch_size=params['batch_size'],shuffle=False)
+    train_dataloader = DataLoader(train_data, batch_size=params['batch_size'], collate_fn=collate_batch,shuffle=True)
+    valid_dataloader = DataLoader(valid_data, batch_size=params['batch_size'],collate_fn=collate_batch,shuffle=False)
+    test_dataloader = DataLoader(test_data, batch_size=params['batch_size'],collate_fn=collate_batch,:qshuffle=False)
 
 
    
