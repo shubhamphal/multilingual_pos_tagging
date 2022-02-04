@@ -116,7 +116,15 @@ UD_TAGS = data.Field(unk_token = None,
 
 fields = (("text", TEXT), ("udtags", UD_TAGS))
 
-train_data, valid_data, test_data = datasets.UDPOS.splits(fields)
+#train_data, valid_data, test_data = datasets.UDPOS.splits(fields)
+
+
+train_data, valid_data, test_data = UDPOS(
+    os.path.join('data', args.lang),
+    split=('train', 'valid', 'test'),
+).splits(fields)
+
+
 
 print(vars(train_data.examples[0]))
 
