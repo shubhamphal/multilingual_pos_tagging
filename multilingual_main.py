@@ -111,7 +111,7 @@ def main():
     BATCH_SIZE = 32
     DROPOUT = 0.25
 
-    train_iterator, valid_iterator, test_iterator = data.BucketIterator.splits((train_data, valid_data, test_data), batch_size = BATCH_SIZE,device = device)
+    #train_iterator, valid_iterator, test_iterator = data.BucketIterator.splits((train_data, valid_data, test_data), batch_size = BATCH_SIZE,device = device)
    
     train_dataloader = DataLoader(train_data, batch_size=params['batch_size'], shuffle=True)
     valid_dataloader = DataLoader(valid_data, batch_size=params['batch_size'],shuffle=False)
