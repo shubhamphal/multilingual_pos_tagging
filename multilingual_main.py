@@ -221,6 +221,8 @@ def train(model, iterator, optimizer, criterion, tag_pad_idx):
         
         predictions = model(text)
         
+
+
         #predictions = [sent len, batch size, output dim]
         #tags = [sent len, batch size]
         
@@ -270,19 +272,13 @@ def evaluate(model, iterator, criterion, tag_pad_idx):
     model.eval()
     
     with torch.no_grad():
-    
         for batch in iterator:
-
             text = batch[0]
             tags = batch[1]
-            
             predictions = model(text)
-            
             predictions = predictions.view(-1, predictions.shape[-1])
             tags = tags.view(-1)
-            
             loss = criterion(predictions, tags)
-            
             acc = categorical_accuracy(predictions, tags, tag_pad_idx)
 
             epoch_loss += loss.item()
