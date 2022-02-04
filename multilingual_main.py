@@ -1,3 +1,5 @@
+#REFERENCES https://github.com/bentrevett/pytorch-pos-tagging
+
 from collections import Counter
 
 import torch
@@ -133,14 +135,9 @@ def main():
             pad_sequence(tag_list, padding_value=TAG_PAD_IDX)
         )
 
-
-
     train_dataloader = DataLoader(train_data, batch_size=params['batch_size'], collate_fn=collate_batch,shuffle=True)
     valid_dataloader = DataLoader(valid_data, batch_size=params['batch_size'],collate_fn=collate_batch,shuffle=False)
-    test_dataloader = DataLoader(test_data, batch_size=params['batch_size'],collate_fn=collate_batch,shuffle=False)
-
-
-   
+    test_dataloader = DataLoader(test_data, batch_size=params['batch_size'],collate_fn=collate_batch,shuffle=False)   
     bert = BertModel.from_pretrained('bert-base-multilingual-cased')
     model = BERTPoSTagger(bert, OUTPUT_DIM, DROPOUT)
 
@@ -153,8 +150,7 @@ def main():
 
     n_param = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"The model has {n_param} trainable parameters")
-
-    N_EPOCHS = 1
+    N_EPOCHS = params['max_epoch']
     best_valid_loss = float('inf')
 
     for epoch in range(N_EPOCHS):

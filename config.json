@@ -5,6 +5,6 @@
   "bidirectional":true,
   "dropout":0.25,
   "batch_size": 32,
-  "max_epoch": 10,
+  "max_epoch": 5,
   "min_freq": 2
 }
