@@ -105,7 +105,14 @@ def main():
         split=('train', 'valid', 'test'),
     )
 
-    UD_TAGS.build_vocab(train_data)
+    train_tags = [label for (line, label) in train_data] 
+
+
+    UD_TAGS.build_vocab(train_tags)
+
+    print("UD_TAG vocabulary")
+    print(UD_TAGS.vocab.stoi)
+
 
     OUTPUT_DIM = len(UD_TAGS.vocab)
     BATCH_SIZE = 32
