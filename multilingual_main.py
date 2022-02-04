@@ -89,16 +89,16 @@ def main():
     #text_preprocessor = functools.partial(cut_and_convert_to_id, tokenizer = tokenizer,max_input_length = max_input_length)
     #tag_preprocessor = functools.partial(cut_to_max_length, max_input_length = max_input_length)
 
-    TEXT = data.Field(use_vocab = False,
-                  lower = True,
-                  preprocessing = transform_text,
-                  init_token = init_token_idx,
-                  pad_token = pad_token_idx,
-                  unk_token = unk_token_idx)
+    # TEXT = data.Field(use_vocab = False,
+    #               lower = True,
+    #               preprocessing = transform_text,
+    #               init_token = init_token_idx,
+    #               pad_token = pad_token_idx,
+    #               unk_token = unk_token_idx)
 
     UD_TAGS = data.Field(unk_token = None,
                      init_token = '<pad>',
-                     preprocessing = transform_tag)
+                     preprocessing = preprocess_tag)
 
     train_data, valid_data, test_data = UDPOS(
         os.path.join('data', args.lang),
@@ -119,14 +119,16 @@ def main():
     DROPOUT = 0.25
 
     #train_iterator, valid_iterator, test_iterator = data.BucketIterator.splits((train_data, valid_data, test_data), batch_size = BATCH_SIZE,device = device)
-   
     TAG_PAD_IDX = UD_TAGS.vocab.stoi[UD_TAGS.pad_token]
+    print(UD_TAGS.pad_token)
+
+
 
     def collate_batch(batch):
         tag_list, text_list = [], []
         for (line, label) in batch:
             text_list.append(torch.tensor(transform_text(line, tokenizer, max_input_length), device=device))
-            tag_list.append(torch.tensor(transform_tag(label, max_input_length), device=device))
+            tag_list.append(torch.tensor(transform_tag(label, max_input_length, UD_TAGS), device=device))
         return (
             pad_sequence(text_list, padding_value=TAG_PAD_IDX),
             pad_sequence(tag_list, padding_value=TAG_PAD_IDX)
@@ -186,7 +188,12 @@ def transform_text(tokens, tokenizer, max_input_length):
     tokens = tokenizer.convert_tokens_to_ids(tokens)
     return tokens
 
-def transform_tag(tokens, max_input_length):
+def transform_tag(tokens, max_input_length,UD_TAGS):
+    tokens = tokens[:max_input_length-1]
+    tokens = [UD_TAGS.vocab.stoi[token] for token in tokens]
+    return tokens
+
+def preprocess_tag(tokens, max_input_length):
     tokens = tokens[:max_input_length-1]
     return tokens
 
