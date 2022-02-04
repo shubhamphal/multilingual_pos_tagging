@@ -131,7 +131,7 @@ print(train_data[0])
 
 UD_TAGS.build_vocab(train_data)
 
-print(UD_TAGS.vocab.stoi)
+#print(UD_TAGS.vocab.stoi)
 
 # def main():
 #     print("Running main.py in {} mode with lang: {}".format(args.mode, args.lang))
