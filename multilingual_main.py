@@ -122,7 +122,7 @@ fields = (("text", TEXT), ("udtags", UD_TAGS))
 train_data, valid_data, test_data = UDPOS(
     os.path.join('data', args.lang),
     split=('train', 'valid', 'test'),
-).splits(fields)
+)
 
 
 
