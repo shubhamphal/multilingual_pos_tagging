@@ -105,8 +105,7 @@ def main():
         split=('train', 'valid', 'test'),
     )
 
-    train_tags = [label for (line, label) in train_data] 
-
+    train_tags = [label for (line, label) in train_data + valid_data + test_data] 
 
     UD_TAGS.build_vocab(train_tags)
 
