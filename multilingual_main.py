@@ -112,6 +112,16 @@ def main():
     DROPOUT = 0.25
 
     train_iterator, valid_iterator, test_iterator = data.BucketIterator.splits((train_data, valid_data, test_data), batch_size = BATCH_SIZE,device = device)
+   
+    train_dataloader = DataLoader(train_data, batch_size=params['batch_size'], shuffle=True)
+    valid_dataloader = DataLoader(valid_data, batch_size=params['batch_size'],shuffle=False)
+    test_dataloader = DataLoader(test_data, batch_size=params['batch_size'],shuffle=False)
+
+
+
+   
+   
+   
     bert = BertModel.from_pretrained('bert-base-multilingual-cased')
     model = BERTPoSTagger(bert, OUTPUT_DIM, DROPOUT)
 
@@ -133,8 +143,8 @@ def main():
 
     for epoch in range(N_EPOCHS):
         start_time = time.time()
-        train_loss, train_acc = train(model, train_iterator, optimizer, criterion, TAG_PAD_IDX)
-        valid_loss, valid_acc = evaluate(model, valid_iterator, criterion, TAG_PAD_IDX)
+        train_loss, train_acc = train(model, train_dataloader, optimizer, criterion, TAG_PAD_IDX)
+        valid_loss, valid_acc = evaluate(model, valid_dataloader, criterion, TAG_PAD_IDX)
         end_time = time.time()
         epoch_mins, epoch_secs = epoch_time(start_time, end_time)
     
@@ -148,6 +158,10 @@ def main():
                   f"| Train Acc: {train_acc*100:.2f}%")
         print(f"\t Val. Loss: {valid_loss:.3f} "
                   f"|  Val. Acc: {valid_acc*100:.2f}%")
+
+
+    test_loss, test_acc = evaluate(model, test_dataloader, criterion,TAG_PAD_IDX)
+    print(f"Test Loss: {test_loss:.3f} |  Test Acc: {test_acc*100:.2f}%")
 
 def cut_and_convert_to_id(tokens, tokenizer, max_input_length):
     tokens = tokens[:max_input_length-1]
@@ -357,16 +371,14 @@ def tag_percentage(tag_counts):
     return tag_counts_percentages
 
 
-def categorical_accuracy(preds, y, tag_pad_idx, tag_unk_idx):
+def categorical_accuracy(preds, y, tag_pad_idx):
     """
     Returns accuracy per batch, i.e. if you get 8/10 right, this returns 0.8, NOT 8
     """
-    max_preds = preds.argmax(dim=1, keepdim=True)  
-    # get the index of the max probability
-    non_pad_elements = torch.nonzero((y != tag_pad_idx) & (y != tag_unk_idx))
+    max_preds = preds.argmax(dim = 1, keepdim = True) # get the index of the max probability
+    non_pad_elements = (y != tag_pad_idx).nonzero()
     correct = max_preds[non_pad_elements].squeeze(1).eq(y[non_pad_elements])
-    # print(correct.float().sum(), y[non_pad_elements].shape[0])
-    return correct.float().sum(), y[non_pad_elements].shape[0]
+    return correct.sum() / torch.FloatTensor([y[non_pad_elements].shape[0]]).to(device)
 
 
 # def train(model, iterator, optimizer, criterion, tag_pad_idx, tag_unk_idx):
@@ -413,33 +425,33 @@ def categorical_accuracy(preds, y, tag_pad_idx, tag_unk_idx):
 #     return epoch_loss / len(iterator), epoch_correct / epoch_n_label
 
 
-def evaluate(model, iterator, criterion, tag_pad_idx, tag_unk_idx):
+def evaluate(model, iterator, criterion, tag_pad_idx):
+    
     epoch_loss = 0
-    epoch_correct = 0
-    epoch_n_label = 0
+    epoch_acc = 0
+    
     model.eval()
+    
     with torch.no_grad():
-
+    
         for batch in iterator:
-            text = batch[0]
-            tags = batch[1]
 
+            text = batch.text
+            tags = batch.udtags
+            
             predictions = model(text)
-
+            
             predictions = predictions.view(-1, predictions.shape[-1])
             tags = tags.view(-1)
-
+            
             loss = criterion(predictions, tags)
-
-            correct, n_labels = categorical_accuracy(
-                predictions, tags, tag_pad_idx, tag_unk_idx
-            )
+            
+            acc = categorical_accuracy(predictions, tags, tag_pad_idx)
 
             epoch_loss += loss.item()
-            epoch_correct += correct.item()
-            epoch_n_label += n_labels
-
-    return epoch_loss / len(iterator), epoch_correct / epoch_n_label
+            epoch_acc += acc.item()
+        
+    return epoch_loss / len(iterator), epoch_acc / len(iterator)
 
 
 def epoch_time(start_time, end_time):
