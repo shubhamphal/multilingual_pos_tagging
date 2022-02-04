@@ -1,7 +1,8 @@
 from collections import Counter
 
 import torch
-from torchtext import data
+from torchtext.legacy import data
+from torchtext.legacy import datasets
 from torchtext.data.utils import get_tokenizer
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
@@ -9,7 +10,6 @@ import torchtext.vocab
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torchtext.legacy import datasets
 from transformers import BertTokenizer, BertModel
 import time
 import functools
