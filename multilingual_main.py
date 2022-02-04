@@ -355,8 +355,8 @@ def train(model, iterator, optimizer, criterion, tag_pad_idx):
     
     for batch in iterator:
         
-        text = batch.text
-        tags = batch.udtags
+        text = batch[0]
+        tags = batch[1]
                 
         optimizer.zero_grad()
         
@@ -461,8 +461,8 @@ def evaluate(model, iterator, criterion, tag_pad_idx):
     
         for batch in iterator:
 
-            text = batch.text
-            tags = batch.udtags
+            text = batch[0]
+            tags = batch[1]
             
             predictions = model(text)
             
