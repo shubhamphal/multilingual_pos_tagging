@@ -86,19 +86,19 @@ def main():
 
     max_input_length = tokenizer.max_model_input_sizes['bert-base-multilingual-cased']
     
-    text_preprocessor = functools.partial(cut_and_convert_to_id, tokenizer = tokenizer,max_input_length = max_input_length)
-    tag_preprocessor = functools.partial(cut_to_max_length, max_input_length = max_input_length)
+    #text_preprocessor = functools.partial(cut_and_convert_to_id, tokenizer = tokenizer,max_input_length = max_input_length)
+    #tag_preprocessor = functools.partial(cut_to_max_length, max_input_length = max_input_length)
 
     TEXT = data.Field(use_vocab = False,
                   lower = True,
-                  preprocessing = text_preprocessor,
+                  preprocessing = transform_text,
                   init_token = init_token_idx,
                   pad_token = pad_token_idx,
                   unk_token = unk_token_idx)
 
     UD_TAGS = data.Field(unk_token = None,
                      init_token = '<pad>',
-                     preprocessing = tag_preprocessor)
+                     preprocessing = transform_tag)
 
     train_data, valid_data, test_data = UDPOS(
         os.path.join('data', args.lang),
@@ -113,14 +113,25 @@ def main():
 
     #train_iterator, valid_iterator, test_iterator = data.BucketIterator.splits((train_data, valid_data, test_data), batch_size = BATCH_SIZE,device = device)
    
+    TAG_PAD_IDX = UD_TAGS.vocab.stoi[UD_TAGS.pad_token]
+
+    def collate_batch(batch):
+        tag_list, text_list = [], []
+        for (line, label) in batch:
+            text_list.append(torch.tensor(transform_text(line, tokenizer, max_input_length), device=device))
+            tag_list.append(torch.tensor(transform_tag(label, max_input_length), device=device))
+        return (
+            pad_sequence(text_list, padding_value=TAG_PAD_IDX),
+            pad_sequence(tag_list, padding_value=TAG_PAD_IDX)
+        )
+
+
+
     train_dataloader = DataLoader(train_data, batch_size=params['batch_size'], shuffle=True)
     valid_dataloader = DataLoader(valid_data, batch_size=params['batch_size'],shuffle=False)
     test_dataloader = DataLoader(test_data, batch_size=params['batch_size'],shuffle=False)
 
 
-
-   
-   
    
     bert = BertModel.from_pretrained('bert-base-multilingual-cased')
     model = BERTPoSTagger(bert, OUTPUT_DIM, DROPOUT)
@@ -128,7 +139,7 @@ def main():
     LEARNING_RATE = 5e-5
     optimizer = optim.Adam(model.parameters(), lr = LEARNING_RATE)
     
-    TAG_PAD_IDX = UD_TAGS.vocab.stoi[UD_TAGS.pad_token]
+    
     
     criterion = nn.CrossEntropyLoss(ignore_index = TAG_PAD_IDX)
 
@@ -163,12 +174,12 @@ def main():
     test_loss, test_acc = evaluate(model, test_dataloader, criterion,TAG_PAD_IDX)
     print(f"Test Loss: {test_loss:.3f} |  Test Acc: {test_acc*100:.2f}%")
 
-def cut_and_convert_to_id(tokens, tokenizer, max_input_length):
+def transform_text(tokens, tokenizer, max_input_length):
     tokens = tokens[:max_input_length-1]
     tokens = tokenizer.convert_tokens_to_ids(tokens)
     return tokens
 
-def cut_to_max_length(tokens, max_input_length):
+def transform_tag(tokens, max_input_length):
     tokens = tokens[:max_input_length-1]
     return tokens
 
