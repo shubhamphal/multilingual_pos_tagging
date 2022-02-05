@@ -4,7 +4,7 @@
   "n_layers": 4,
   "bidirectional":true,
   "dropout":0.25,
-  "batch_size": 32,
+  "batch_size": 16,
   "max_epoch": 5,
   "min_freq": 2
 }
