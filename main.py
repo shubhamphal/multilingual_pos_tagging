@@ -177,7 +177,7 @@ def main():
                 vocab_tag['<PAD>'],
                 vocab_tag['<UNK>'],
             )
-            valid_loss, valid_acc = evaluate(
+            valid_loss, valid_acc, outputs = evaluate(
                 model, valid_dataloader, criterion,
                 vocab_tag['<PAD>'], vocab_tag['<UNK>']
             )
@@ -251,6 +251,7 @@ def train(model, iterator, optimizer, criterion, tag_pad_idx, tag_unk_idx):
     model.train()
 
     for batch in iterator:
+
         text = batch[0]
         tags = batch[1]
         optimizer.zero_grad()
