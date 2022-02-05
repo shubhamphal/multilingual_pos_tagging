@@ -87,8 +87,8 @@ def main():
 
 
     OUTPUT_DIM = len(UD_TAGS.vocab)
-    BATCH_SIZE = params["dropout"]
-    DROPOUT = params["batch_size"]
+    BATCH_SIZE = params["batch_size"]
+    DROPOUT = params["dropout"]
     TAG_PAD_IDX = UD_TAGS.vocab.stoi[UD_TAGS.pad_token]
     print(UD_TAGS.pad_token)
 
