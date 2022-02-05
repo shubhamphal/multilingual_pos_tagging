@@ -5,7 +5,7 @@
   "bidirectional":true,
   "dropout":0.25,
   "batch_size": 32,
-  "max_epoch": 5,
+  "max_epoch": 10,
   "min_freq": 2,
   "learning_rate":5e-5 
 }
