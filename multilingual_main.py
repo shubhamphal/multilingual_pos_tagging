@@ -155,6 +155,11 @@ def main():
     test_loss, test_acc, outputs = evaluate(model, test_dataloader, criterion,TAG_PAD_IDX)
     print(f"Test Loss: {test_loss:.3f} |  Test Acc: {test_acc*100:.2f}%")
 
+    output_path = os.path.join('model_outputs', f'{args.lang}.conll')
+    dump_output(test_data, outputs, UD_TAGS, output_path)
+
+
+
 
 
 def transform_text(tokens, tokenizer, max_input_length):
@@ -250,6 +255,14 @@ def get_statistics(UD_TAGS):
     print("Tag\t\tCount\t\tPercentage\n")
     for tag, count, percent in tag_percentage(UD_TAGS.vocab.freqs.most_common()):
         print(f"{tag}\t\t{count}\t\t{percent*100:4.1f}%")
+
+def dump_output(data, outputs, vocab_tag, output_path):
+    assert len(data) == len(outputs)
+    with open(output_path, 'w') as f:
+        for (line, _), output in zip(data, outputs):
+            for token, tag in zip(line, output):
+                f.write(f'{token}\t{vocab_tag[tag]}\n')
+            f.write('\n')
 
 
 
