@@ -261,7 +261,7 @@ def dump_output(data, outputs, vocab_tag, output_path):
     with open(output_path, 'w') as f:
         for (line, _), output in zip(data, outputs):
             for token, tag in zip(line, output):
-                f.write(f'{token}\t{vocab_tag[tag]}\n')
+                f.write(f'{token}\t{vocab_tag.vocab.itos[tag]}\n')
             f.write('\n')
 
 
