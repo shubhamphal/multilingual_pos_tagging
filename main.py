@@ -78,17 +78,6 @@ def main():
         split=('train', 'valid', 'test'),
     )
 
-    
-
-    #code to count the number of tokens in each language
-    # all_tokens = [line for line, label in train_data]
-    # token_list = []
-    # for line in all_tokens:
-    #     for token in line:
-    #         token_list.append(token)
-    # print(len(token_list))
-
-    #building the vocabulary for both text and the labels
     vocab_text = torchtext.vocab.build_vocab_from_iterator(
         (line for line, label in train_data), min_freq=params['min_freq'],
         specials=['<unk>', '<PAD>']
@@ -223,10 +212,13 @@ def main():
         )
         return
 
-    test_loss, test_acc = evaluate(
+    test_loss, test_acc, outputs = evaluate(
         model, test_dataloader, criterion, vocab_tag['<PAD>'], vocab_tag['<UNK>']
     )
     print(f"Test Loss: {test_loss:.3f} |  Test Acc: {test_acc*100:.2f}%")
+
+    output_path = os.path.join('model_outputs', f'{args.lang}.conll')
+    dump_output(test_data, outputs, vocab_tag, output_path)
 
 
 def tag_percentage(tag_counts):
@@ -259,34 +251,23 @@ def train(model, iterator, optimizer, criterion, tag_pad_idx, tag_unk_idx):
     model.train()
 
     for batch in iterator:
-
         text = batch[0]
         tags = batch[1]
-
         optimizer.zero_grad()
-
         # text = [sent len, batch size]
-
         predictions = model(text)
-
         # predictions = [sent len, batch size, output dim]
         # tags = [sent len, batch size]
-
         predictions = predictions.view(-1, predictions.shape[-1])
         tags = tags.view(-1)
-
         # predictions = [sent len * batch size, output dim]
         # tags = [sent len * batch size]
-
         loss = criterion(predictions, tags)
-
         correct, n_labels = categorical_accuracy(
             predictions, tags, tag_pad_idx, tag_unk_idx
         )
-
         loss.backward()
         optimizer.step()
-
         epoch_loss += loss.item()
         epoch_correct += correct.item()
         epoch_n_label += n_labels
@@ -299,6 +280,7 @@ def evaluate(model, iterator, criterion, tag_pad_idx, tag_unk_idx):
     epoch_loss = 0
     epoch_correct = 0
     epoch_n_label = 0
+    outputs = []
 
     model.eval()
 
@@ -310,6 +292,13 @@ def evaluate(model, iterator, criterion, tag_pad_idx, tag_unk_idx):
 
             predictions = model(text)
 
+            outputs += [
+                pred[:length].cpu()
+                for pred, length in zip(
+                        predictions.argmax(-1).transpose(0, 1),
+                        (tags != tag_pad_idx).long().sum(0)
+                )
+            ]
             predictions = predictions.view(-1, predictions.shape[-1])
             tags = tags.view(-1)
 
@@ -323,7 +312,7 @@ def evaluate(model, iterator, criterion, tag_pad_idx, tag_unk_idx):
             epoch_correct += correct.item()
             epoch_n_label += n_labels
 
-    return epoch_loss / len(iterator), epoch_correct / epoch_n_label
+    return epoch_loss / len(iterator), epoch_correct / epoch_n_label, outputs
 
 
 def epoch_time(start_time, end_time):
@@ -331,6 +320,15 @@ def epoch_time(start_time, end_time):
     elapsed_mins = int(elapsed_time / 60)
     elapsed_secs = int(elapsed_time - (elapsed_mins * 60))
     return elapsed_mins, elapsed_secs
+
+
+def dump_output(data, outputs, vocab_tag, output_path):
+    assert len(data) == len(outputs)
+    with open(output_path, 'w') as f:
+        for (line, _), output in zip(data, outputs):
+            for token, tag in zip(line, output):
+                f.write(f'{token}\t{vocab_tag.lookup_token(tag)}\n')
+            f.write('\n')
 
 
 if __name__ == "__main__":

@@ -1,14 +1,10 @@
-#REFERENCES https://github.com/bentrevett/pytorch-pos-tagging
+#REFERENCES Adapted from https://github.com/bentrevett/pytorch-pos-tagging
 
 from collections import Counter
-
 import torch
 from torchtext.legacy import data
-from torchtext.legacy import datasets
-from torchtext.data.utils import get_tokenizer
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
-import torchtext.vocab
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -67,37 +63,14 @@ torch.manual_seed(SEED)
 torch.backends.cudnn.deterministic = True
 params = json.load(open("config.json"))
 
-# Modify this if you have multiple GPUs on your machine
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-#train_data, valid_data, test_data = datasets.UDPOS.splits(fields)
-#print(UD_TAGS.vocab.stoi)
-
 
 def main():
-    print("Running main.py in {} mode with lang: {}".format(args.mode, args.lang))
+    print("Running multilingual_main.py in {} mode with lang: {}".format(args.mode, args.lang))
 
     # load the data from the specific path
-
     tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
-    init_token = tokenizer.cls_token
-    pad_token = tokenizer.pad_token
-    unk_token = tokenizer.unk_token
-    init_token_idx = tokenizer.convert_tokens_to_ids(init_token)
-    pad_token_idx = tokenizer.convert_tokens_to_ids(pad_token)
-    unk_token_idx = tokenizer.convert_tokens_to_ids(unk_token)
-
     max_input_length = tokenizer.max_model_input_sizes['bert-base-multilingual-cased']
-    
-    #text_preprocessor = functools.partial(cut_and_convert_to_id, tokenizer = tokenizer,max_input_length = max_input_length)
-    #tag_preprocessor = functools.partial(cut_to_max_length, max_input_length = max_input_length)
-
-    # TEXT = data.Field(use_vocab = False,
-    #               lower = True,
-    #               preprocessing = transform_text,
-    #               init_token = init_token_idx,
-    #               pad_token = pad_token_idx,
-    #               unk_token = unk_token_idx)
-
     UD_TAGS = data.Field(unk_token = None,
                      init_token = '<pad>',
                      preprocessing = preprocess_tag)
@@ -108,36 +81,16 @@ def main():
     )
 
     train_tags = [label for (line, label) in train_data + valid_data + test_data] 
-
-
-    
-    print("TESTING DATA SIZE",len(test_data))
     UD_TAGS.build_vocab(train_tags)
-    print(UD_TAGS.vocab.freqs.most_common())
-    print("Tag\t\tCount\t\tPercentage\n")
-    for tag, count, percent in tag_percentage(UD_TAGS.vocab.freqs.most_common()):
-        print(f"{tag}\t\t{count}\t\t{percent*100:4.1f}%")
-
-
-
-
-    
-
-
-    return None
-    print("UD_TAG vocabulary")
-    print(UD_TAGS.vocab.stoi)
+    # print("UD_TAG vocabulary")
+    # print(UD_TAGS.vocab.stoi)
 
 
     OUTPUT_DIM = len(UD_TAGS.vocab)
-    BATCH_SIZE = 32
-    DROPOUT = 0.25
-
-    #train_iterator, valid_iterator, test_iterator = data.BucketIterator.splits((train_data, valid_data, test_data), batch_size = BATCH_SIZE,device = device)
+    BATCH_SIZE = params["dropout"]
+    DROPOUT = params["batch_size"]
     TAG_PAD_IDX = UD_TAGS.vocab.stoi[UD_TAGS.pad_token]
     print(UD_TAGS.pad_token)
-
-
 
     def collate_batch(batch):
         tag_list, text_list = [], []
@@ -149,45 +102,60 @@ def main():
             pad_sequence(tag_list, padding_value=TAG_PAD_IDX)
         )
 
-    train_dataloader = DataLoader(train_data, batch_size=params['batch_size'], collate_fn=collate_batch,shuffle=True)
-    valid_dataloader = DataLoader(valid_data, batch_size=params['batch_size'],collate_fn=collate_batch,shuffle=False)
-    test_dataloader = DataLoader(test_data, batch_size=params['batch_size'],collate_fn=collate_batch,shuffle=False)   
+    train_dataloader = DataLoader(train_data, batch_size=BATCH_SIZE, collate_fn=collate_batch,shuffle=True)
+    valid_dataloader = DataLoader(valid_data, batch_size=BATCH_SIZE,collate_fn=collate_batch,shuffle=False)
+    test_dataloader = DataLoader(test_data, batch_size=BATCH_SIZE,collate_fn=collate_batch,shuffle=False)   
     bert = BertModel.from_pretrained('bert-base-multilingual-cased')
     model = BERTPoSTagger(bert, OUTPUT_DIM, DROPOUT)
 
-    LEARNING_RATE = 5e-5
+    LEARNING_RATE = params["learning_rate"]
     optimizer = optim.Adam(model.parameters(), lr = LEARNING_RATE)
     criterion = nn.CrossEntropyLoss(ignore_index = TAG_PAD_IDX)
 
     model = model.to(device)
     criterion = criterion.to(device)
 
-    n_param = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"The model has {n_param} trainable parameters")
-    N_EPOCHS = params['max_epoch']
-    best_valid_loss = float('inf')
+    if args.mode == "train":
+        n_param = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"The model has {n_param} trainable parameters")
+        N_EPOCHS = params['max_epoch']
+        best_valid_loss = float('inf')
 
-    for epoch in range(N_EPOCHS):
-        start_time = time.time()
-        train_loss, train_acc = train(model, train_dataloader, optimizer, criterion, TAG_PAD_IDX)
-        valid_loss, valid_acc = evaluate(model, valid_dataloader, criterion, TAG_PAD_IDX)
-        end_time = time.time()
-        epoch_mins, epoch_secs = epoch_time(start_time, end_time)
+        for epoch in range(N_EPOCHS):
+            start_time = time.time()
+            train_loss, train_acc = train(model, train_dataloader, optimizer, criterion, TAG_PAD_IDX)
+            valid_loss, valid_acc = evaluate(model, valid_dataloader, criterion, TAG_PAD_IDX)
+            end_time = time.time()
+            epoch_mins, epoch_secs = epoch_time(start_time, end_time)
     
-        if valid_loss < best_valid_loss:
-            best_valid_loss = valid_loss
-            torch.save(model.state_dict(), f"saved_models/{args.model_name}.pt")
+            if valid_loss < best_valid_loss:
+                best_valid_loss = valid_loss
+                torch.save(model.state_dict(), f"saved_models/{args.model_name}.pt")
 
-        print(f"Epoch: {epoch+1:02} "
+            print(f"Epoch: {epoch+1:02} "
                   f"| Epoch Time: {epoch_mins}m {epoch_secs}s")
-        print(f"\tTrain Loss: {train_loss:.3f} "
+            print(f"\tTrain Loss: {train_loss:.3f} "
                   f"| Train Acc: {train_acc*100:.2f}%")
-        print(f"\t Val. Loss: {valid_loss:.3f} "
+            print(f"\t Val. Loss: {valid_loss:.3f} "
                   f"|  Val. Acc: {valid_acc*100:.2f}%")
 
-
+    try:
+        model.load_state_dict(
+            torch.load(f"saved_models/{args.model_name}.pt",
+                       map_location=device)
+        )
+    except OSError:
+        print(
+            f"Model file `saved_models/{args.model_name}.pt` doesn't exist."
+            "You need to train the model by running this code in train mode."
+            "Run python main.py --help for more instructions"
+        )
+        return
+    
     test_loss, test_acc = evaluate(model, test_dataloader, criterion,TAG_PAD_IDX)
     print(f"Test Loss: {test_loss:.3f} |  Test Acc: {test_acc*100:.2f}%")
+
+
 
 def transform_text(tokens, tokenizer, max_input_length):
     tokens = tokens[:max_input_length-1]
@@ -210,32 +178,14 @@ def train(model, iterator, optimizer, criterion, tag_pad_idx):
     for batch in iterator:
         text = batch[0]
         tags = batch[1]
-        print(text)
-        print(tags)
-        print(text.shape)
-        print(tags.shape)
         optimizer.zero_grad()
-        
-        #text = [sent len, batch size]
-        
         predictions = model(text)
-    
-        #predictions = [sent len, batch size, output dim]
-        #tags = [sent len, batch size]
-        
         predictions = predictions.view(-1, predictions.shape[-1])
         tags = tags.view(-1)
-        
-        #predictions = [sent len * batch size, output dim]
-        #tags = [sent len * batch size]
-        
         loss = criterion(predictions, tags)
         acc = categorical_accuracy(predictions, tags, tag_pad_idx)
-        
         loss.backward()
-        
         optimizer.step()
-        
         epoch_loss += loss.item()
         epoch_acc += acc.item()
         
@@ -252,19 +202,14 @@ def tag_percentage(tag_counts):
 
 
 def categorical_accuracy(preds, y, tag_pad_idx):
-    """
-    Returns accuracy per batch, i.e. if you get 8/10 right, this returns 0.8, NOT 8
-    """
-    max_preds = preds.argmax(dim = 1, keepdim = True) # get the index of the max probability
+    max_preds = preds.argmax(dim = 1, keepdim = True) 
     non_pad_elements = (y != tag_pad_idx).nonzero()
     correct = max_preds[non_pad_elements].squeeze(1).eq(y[non_pad_elements])
     return correct.sum() / torch.FloatTensor([y[non_pad_elements].shape[0]]).to(device)
 
 def evaluate(model, iterator, criterion, tag_pad_idx):
-    
     epoch_loss = 0
     epoch_acc = 0
-    
     model.eval()
     
     with torch.no_grad():
@@ -276,7 +221,6 @@ def evaluate(model, iterator, criterion, tag_pad_idx):
             tags = tags.view(-1)
             loss = criterion(predictions, tags)
             acc = categorical_accuracy(predictions, tags, tag_pad_idx)
-
             epoch_loss += loss.item()
             epoch_acc += acc.item()
         
@@ -293,6 +237,12 @@ def tag_percentage(tag_counts):
     total_count = sum([count for tag, count in tag_counts])
     tag_counts_percentages = [(tag, count, count/total_count) for tag, count in tag_counts]
     return tag_counts_percentages
+
+def get_statistics(UD_TAGS):
+    print(UD_TAGS.vocab.freqs.most_common())
+    print("Tag\t\tCount\t\tPercentage\n")
+    for tag, count, percent in tag_percentage(UD_TAGS.vocab.freqs.most_common()):
+        print(f"{tag}\t\t{count}\t\t{percent*100:4.1f}%")
 
 
 
