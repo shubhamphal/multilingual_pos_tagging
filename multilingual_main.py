@@ -217,8 +217,6 @@ def evaluate(model, iterator, criterion, tag_pad_idx):
             text = batch[0]
             tags = batch[1]
             predictions = model(text)
-            predictions = predictions.view(-1, predictions.shape[-1])
-
             outputs += [
                 pred[:length].cpu()
                 for pred, length in zip(
@@ -226,6 +224,7 @@ def evaluate(model, iterator, criterion, tag_pad_idx):
                         (tags != tag_pad_idx).long().sum(0)
                 )
             ]
+            predictions = predictions.view(-1, predictions.shape[-1])
             tags = tags.view(-1)
             loss = criterion(predictions, tags)
             acc = categorical_accuracy(predictions, tags, tag_pad_idx)
