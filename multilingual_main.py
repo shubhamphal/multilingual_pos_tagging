@@ -109,8 +109,22 @@ def main():
 
     train_tags = [label for (line, label) in train_data + valid_data + test_data] 
 
-    UD_TAGS.build_vocab(train_tags)
 
+    
+    print("TESTING DATA SIZE",len(test_data))
+    UD_TAGS.build_vocab(train_tags)
+    print(UD_TAGS.vocab.freqs.most_common())
+    print("Tag\t\tCount\t\tPercentage\n")
+    for tag, count, percent in tag_percentage(UD_TAGS.vocab.freqs.most_common()):
+        print(f"{tag}\t\t{count}\t\t{percent*100:4.1f}%")
+
+
+
+
+    
+
+
+    return None
     print("UD_TAG vocabulary")
     print(UD_TAGS.vocab.stoi)
 
@@ -274,6 +288,13 @@ def epoch_time(start_time, end_time):
     elapsed_mins = int(elapsed_time / 60)
     elapsed_secs = int(elapsed_time - (elapsed_mins * 60))
     return elapsed_mins, elapsed_secs
+
+def tag_percentage(tag_counts):
+    total_count = sum([count for tag, count in tag_counts])
+    tag_counts_percentages = [(tag, count, count/total_count) for tag, count in tag_counts]
+    return tag_counts_percentages
+
+
 
 
 if __name__ == "__main__":

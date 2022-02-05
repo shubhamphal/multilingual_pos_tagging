@@ -1,3 +1,4 @@
+from turtle import Shape
 import torch
 import torch.nn as nn
 
@@ -30,7 +31,11 @@ class BERTPoSTagger(nn.Module):
         #embedded = [batch size, seq len, emb dim]
                 
         embedded = embedded.permute(1, 0, 2)
-                    
+
+
+        print("Shape")
+        print(embedded.shape)
+
         #embedded = [sent len, batch size, emb dim]
         
         predictions = self.fc(self.dropout(embedded))
