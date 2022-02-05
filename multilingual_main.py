@@ -124,7 +124,7 @@ def main():
         for epoch in range(N_EPOCHS):
             start_time = time.time()
             train_loss, train_acc = train(model, train_dataloader, optimizer, criterion, TAG_PAD_IDX)
-            valid_loss, valid_acc = evaluate(model, valid_dataloader, criterion, TAG_PAD_IDX)
+            valid_loss, valid_acc, outputs = evaluate(model, valid_dataloader, criterion, TAG_PAD_IDX)
             end_time = time.time()
             epoch_mins, epoch_secs = epoch_time(start_time, end_time)
     
@@ -152,7 +152,7 @@ def main():
         )
         return
     
-    test_loss, test_acc = evaluate(model, test_dataloader, criterion,TAG_PAD_IDX)
+    test_loss, test_acc, outputs = evaluate(model, test_dataloader, criterion,TAG_PAD_IDX)
     print(f"Test Loss: {test_loss:.3f} |  Test Acc: {test_acc*100:.2f}%")
 
 
@@ -211,20 +211,28 @@ def evaluate(model, iterator, criterion, tag_pad_idx):
     epoch_loss = 0
     epoch_acc = 0
     model.eval()
-    
+    outputs = []
     with torch.no_grad():
         for batch in iterator:
             text = batch[0]
             tags = batch[1]
             predictions = model(text)
             predictions = predictions.view(-1, predictions.shape[-1])
+
+            outputs += [
+                pred[:length].cpu()
+                for pred, length in zip(
+                        predictions.argmax(-1).transpose(0, 1),
+                        (tags != tag_pad_idx).long().sum(0)
+                )
+            ]
             tags = tags.view(-1)
             loss = criterion(predictions, tags)
             acc = categorical_accuracy(predictions, tags, tag_pad_idx)
             epoch_loss += loss.item()
             epoch_acc += acc.item()
         
-    return epoch_loss / len(iterator), epoch_acc / len(iterator)
+    return epoch_loss / len(iterator), epoch_acc / len(iterator), outputs
 
 
 def epoch_time(start_time, end_time):

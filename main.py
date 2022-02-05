@@ -282,11 +282,8 @@ def evaluate(model, iterator, criterion, tag_pad_idx, tag_unk_idx):
     epoch_correct = 0
     epoch_n_label = 0
     outputs = []
-
     model.eval()
-
     with torch.no_grad():
-
         for batch in iterator:
             text = batch[0]
             tags = batch[1]
