@@ -1,6 +1,4 @@
-<<<<<<< HEAD
-`python main.py --help`
-=======
+
 # Multilingual POS tagging
 
 ## Install the transformers library
@@ -18,5 +16,3 @@
 
 `python multilingual_pos_tagging.py --mode train --lang lang-code`
 
-
->>>>>>> 30c56d016bc09954a4b8c2914bc4f369ec44617e
