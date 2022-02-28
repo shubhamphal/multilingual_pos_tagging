@@ -1,6 +1,6 @@
 # Multilingual POS tagging
 
-## Please install transformers library
+## Install the transformers library
 
 `pip install transformers`
 
