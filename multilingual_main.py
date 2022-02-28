@@ -1,4 +1,5 @@
 #REFERENCES Adapted from https://github.com/bentrevett/pytorch-pos-tagging
+
 from collections import Counter
 import torch
 from torchtext.legacy import data

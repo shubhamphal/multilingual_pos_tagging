@@ -1,18 +1,1 @@
-# Multilingual POS tagging
-
-## Please install transformers library
-
-`pip install transformers`
-
-
-## To run the Baseline model
-
-`python main.py --mode train --lang lang-code`
-
-  
-
-## To run the mBERT model
-
-`python multilingual_pos_tagging.py --mode train --lang lang-code`
-
-
+`python main.py --help`
